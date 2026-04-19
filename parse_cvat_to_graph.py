@@ -32,8 +32,12 @@ from torch_geometric.data import Data
 
 # ──────────────────────────── Configuration ────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent
-XML_PATH = PROJECT_ROOT / "granny_square_gnn" / "annotations.xml"
-OUTPUT_PATH = PROJECT_ROOT / "granny_square_gnn" / "graph_data.pt"
+# Search in PROJECT_ROOT (Grad2), not inside dataset/
+XML_FILES = list(PROJECT_ROOT.glob("annotations_*.xml")) 
+# Ensure the result directory exists
+RESULT_DIR = PROJECT_ROOT / "result"
+RESULT_DIR.mkdir(exist_ok=True)
+OUTPUT_PATH = RESULT_DIR / "graph_data.pt"
 
 # Class name → integer ID mapping (matches obj.names order)
 CLASS_MAP = {
@@ -43,6 +47,8 @@ CLASS_MAP = {
     "tr_stitch":  3,
     "ch_stitch":  4,
     "sl_st":      5,
+    "base":       6,
+    "head":       7
 }
 
 
@@ -197,44 +203,28 @@ def build_graph_for_image(image_elem) -> Data | None:
 
 # ──────────────────────────── Main ─────────────────────────────────────
 def main() -> None:
-    print(f"[INFO] Parsing {XML_PATH} ...")
-    tree = ET.parse(str(XML_PATH))
-    root = tree.getroot()
-
     graphs = []
     total_nodes = 0
     total_edges = 0
 
-    for image_elem in root.findall("image"):
-        data = build_graph_for_image(image_elem)
-        if data is not None:
-            graphs.append(data)
-            total_nodes += data.num_nodes
-            total_edges += data.edge_index.size(1)
+    if not XML_FILES:
+        print(f"[ERROR] No annotations_*.xml files found in {PROJECT_ROOT}")
+        return
 
-    print(f"[INFO] Parsed {len(graphs)} image graphs")
-    print(f"       Total nodes: {total_nodes}")
-    print(f"       Total edges: {total_edges}")
+    for xml_file in XML_FILES:
+        print(f"[INFO] Parsing {xml_file.name} ...")
+        tree = ET.parse(str(xml_file))
+        root = tree.getroot()
 
-    # Save
+        for image_elem in root.findall("image"):
+            data = build_graph_for_image(image_elem)
+            if data is not None:
+                graphs.append(data)
+                total_nodes += data.num_nodes
+                total_edges += data.edge_index.size(1)
+
+    print(f"[INFO] Parsed total of {len(graphs)} image graphs from {len(XML_FILES)} files")
     torch.save(graphs, str(OUTPUT_PATH))
-    print(f"[INFO] Saved graph data to {OUTPUT_PATH}")
-
-    # Print summary for first graph
-    if graphs:
-        g = graphs[0]
-        print(f"\n── Sample graph: {g.image_name} ──")
-        print(f"   Nodes: {g.num_nodes}")
-        print(f"   Edges: {g.edge_index.size(1)}")
-        print(f"   Node features shape: {g.x.shape}")
-        print(f"   Edge index shape:    {g.edge_index.shape}")
-        print(f"   Stitch types: {set(g.node_labels)}")
-        print(f"   First 5 node features (cx, cy, class_id):")
-        for i in range(min(5, g.num_nodes)):
-            print(f"     [{i}] {g.node_labels[i]:12s} → "
-                  f"({g.x[i, 0]:.4f}, {g.x[i, 1]:.4f}, class={int(g.x[i, 2])})")
-
-    print("\n[DONE] Graph data is ready for PyTorch Geometric.")
 
 
 if __name__ == "__main__":

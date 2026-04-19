@@ -17,7 +17,7 @@ from pathlib import Path
 
 # ──────────────────────────── Configuration ────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent
-DATA_YAML = PROJECT_ROOT / "dataset" / "data.yaml"
+DATA_YAML = PROJECT_ROOT / "yolo_dataset" / "data.yaml"
 
 # Model — YOLOv11 nano (best starting point for a small dataset)
 # Change to "yolo11s.pt" or "yolo11m.pt" if you have more data/VRAM

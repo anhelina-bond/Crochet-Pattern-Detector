@@ -1,0 +1,15 @@
+# crochet.yaml
+path: ./dataset # root directory of the dataset
+train: images   # train images (relative to 'path')
+val: images     # for now, use same as train to ensure it runs
+
+# Classes (MUST match the order in your obj.names)
+names:
+  0: sc_stitch
+  1: dc_stitch
+  2: hdc_stitch
+  3: tr_stitch
+  4: ch_stitch
+  5: sl_st
+  6: base
+  7: head

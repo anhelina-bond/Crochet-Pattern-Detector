@@ -1,0 +1,4 @@
+classes = 8
+train = dataset/train.txt
+names = dataset/obj.names
+backup = backup/
