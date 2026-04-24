@@ -1,0 +1,15 @@
+Main: Click "New Pattern."
+
+Camera: Take photo with overlay guide.
+
+Crop/Preview: User confirms the photo is clear.
+
+Yarn Config: User selects color/weight (Generates yarn.json).
+
+Loading: "Detecting Topology..." (GNN is running).
+
+Result Chat:
+AI: "I found a Granny Square segment. Here is the chart."
+User: "Make the corners 3 chains instead of 2."
+AI: "Updating... here is the new 3D model."
+Save: Pattern goes to Library.
