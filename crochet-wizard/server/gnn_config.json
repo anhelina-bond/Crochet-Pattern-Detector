@@ -1,0 +1,1 @@
+{"in_channels": 3, "hidden_channels": 128, "class_map": {"sc_stitch": 0, "dc_stitch": 1, "hdc_stitch": 2, "tr_stitch": 3, "ch_stitch": 4, "sl_st": 5}}
