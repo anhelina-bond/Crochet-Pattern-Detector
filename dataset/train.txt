@@ -174,3 +174,11 @@ data/obj_train_data/IMG_20260305_131101.jpg
 data/obj_train_data/IMG_20260305_131102.jpg
 data/obj_train_data/IMG_20260305_131103.jpg
 data/obj_train_data/IMG_20260305_131111.jpg
+data/obj_train_data/IMG_20260510_111954.jpg
+data/obj_train_data/IMG_20260510_111959.jpg
+data/obj_train_data/IMG_20260510_112001.jpg
+data/obj_train_data/IMG_20260510_112008.jpg
+data/obj_train_data/IMG_20260510_112022.jpg
+data/obj_train_data/IMG_20260510_112024.jpg
+data/obj_train_data/IMG_20260510_112029.jpg
+data/obj_train_data/IMG_20260510_112104.jpg
