@@ -23,42 +23,80 @@ export default function LoginScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Authentication Logic
+  // Authentication Logic with Debugging
   async function handleAuthentication() {
+    console.log("--- 🚀 Auth Process Started ---");
+    console.log("Target Email:", email);
+    console.log("Mode:", isSignUp ? "SIGN_UP" : "SIGN_IN");
+
     if (!email || !password) {
+      console.warn("❌ Validation Failed: Missing email or password");
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
 
-    if (isSignUp) {
-      // Sign Up Logic
-      if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
-        setLoading(false);
-        return;
+    try {
+      if (isSignUp) {
+        console.log("📝 Attempting Supabase Sign Up...");
+        if (password !== confirmPassword) {
+          console.warn("❌ Validation Failed: Password mismatch");
+          Alert.alert('Error', 'Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error("🛑 Supabase Sign-Up Error Object:", JSON.stringify(error, null, 2));
+          Alert.alert('Registration Failed', error.message);
+        } else {
+          console.log("✅ Sign-Up Success. Session:", data.session ? "Active" : "Waiting for verification");
+          if (!data.session) Alert.alert('Success', 'Check your inbox for verification!');
+        }
+
+      } else {
+        console.log("🔑 Attempting Supabase Sign In...");
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error("🛑 Supabase Sign-In Error Object:", JSON.stringify(error, null, 2));
+          Alert.alert('Login Failed', error.message);
+        } else {
+          console.log("✅ Sign-In Success. User ID:", data.user?.id);
+        }
       }
-
-      const { data: { session }, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) Alert.alert('Registration Failed', error.message);
-      else if (!session) Alert.alert('Success', 'Check your inbox for verification!');
-    } else {
-      // Login Logic
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) Alert.alert('Login Failed', error.message);
+    } catch (err: any) {
+      // THIS BLOCK IS CRUCIAL FOR "NETWORK REQUEST FAILED"
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.error("🔥 GLOBAL NETWORK/SYSTEM ERROR DETECTED 🔥");
+      console.error("Message:", err.message);
+      
+      // Check if it's a TypeError (usually happens with fetch/network issues)
+      if (err.message.includes("Network request failed")) {
+        console.error("POSSIBLE CAUSES:");
+        console.error("1. Phone has no internet (4G/5G).");
+        console.error("2. Supabase URL in services/supabase.ts has a typo or extra space.");
+        console.error("3. Your phone network blocks Supabase ports.");
+      }
+      
+      console.error("Full Stack Trace:", err.stack);
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      
+      Alert.alert('Connection Error', 'The app could not reach the Supabase servers. Please check your internet connection.');
+    } finally {
+      console.log("--- 🏁 Auth Process Finished ---");
+      setLoading(false);
     }
-    
-    setLoading(false);
   }
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 

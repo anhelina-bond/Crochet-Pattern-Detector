@@ -15,7 +15,7 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   
-  const [url, setUrl] = useState('http://10.87.157.236:8000');
+  const [url, setUrl] = useState('http://10.173.251.236:8000');
 
   // Load the saved URL when the page opens
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function SettingsScreen() {
       />
       
       <Text style={[styles.hint, { color: theme.text, opacity: 0.6 }]}>
-        Tip: Use 'ipconfig' in your Windows terminal to find your IPv4 address.
+        Tip: Use ipconfig in your Windows terminal to find your IPv4 address.
       </Text>
 
       <TouchableOpacity 

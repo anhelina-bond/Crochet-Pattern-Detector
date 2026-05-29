@@ -17,7 +17,7 @@ export const analyzeCrochetSwatch = async (
   renderMode: string,
   userId: string
   ):Promise<any> => {
-    const baseUrl = await AsyncStorage.getItem('backend_url') || 'http://10.87.157.236:8000';
+    const baseUrl = await AsyncStorage.getItem('backend_url') || 'http://10.173.251.236:8000';
     
     const formData = new FormData();
     
@@ -30,7 +30,7 @@ export const analyzeCrochetSwatch = async (
   
     formData.append('yarn_properties', JSON.stringify(yarnData));
     formData.append('output_mode', renderMode); 
-    formData.append('user_id', userId); // <--- 2. Append it here
+    formData.append('user_id', userId); 
   
     const response = await fetch(`${baseUrl}/analyze`, {
       method: 'POST',

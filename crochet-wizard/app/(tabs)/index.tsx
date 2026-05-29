@@ -6,15 +6,16 @@ import {
   FlatList, 
   TouchableOpacity, 
   Image, 
-  StatusBar 
+  StatusBar, 
+  Alert
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView , useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { usePattern, YarnData } from '@/context/PatternContext'; // Corrected Import
 import { supabase } from '@/services/supabase';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
 export interface Pattern {
   id: string;
@@ -24,8 +25,8 @@ export interface Pattern {
   model_url?: string;
   svg_data: string;
   graph_data: {
-    nodes: Array<{ id: number; type: string; x: number; y: number }>;
-    edges: Array<[number, number]>;
+    nodes: { id: number; type: string; x: number; y: number }[];
+    edges: [number, number][];
   };
   yarn_config: YarnData;
   stitch_type: string;
@@ -37,7 +38,32 @@ export default function HomeScreen() {
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { setResults, setYarnData, setRenderMode } = usePattern();
+  const { setImage, setResults, setYarnData, setRenderMode } = usePattern();
+
+  // 2. Logic to pick an image from gallery
+  const pickImage = async () => {
+    // Request permission (though usually not strictly required for picking)
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need access to your gallery to upload swatches.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, // 3. Allow cropping to help YOLO/GNN focus on the swatch
+      aspect: [1, 1],      // Suggest a square crop for consistency
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      // 4. Save to global state and move to next step
+      setImage(result.assets[0].uri);
+      setResults(null); // Clear previous session
+      router.push('/output-mode' as any);
+    }
+  };
 
   const fetchSavedPatterns = async () => {
     // 1. Get the current user
@@ -133,6 +159,11 @@ export default function HomeScreen() {
           <Ionicons name="add-circle" size={28} color="white" />
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.galleryBtn} onPress={pickImage}>
+          <Ionicons name="images-outline" size={20} color={Colors.light.primary} />
+          <Text style={styles.galleryBtnText}>Choose from Gallery</Text>
+        </TouchableOpacity>
+
         <View style={styles.libraryHeader}>
           <Text style={styles.sectionTitle}>Saved Patterns</Text>
           <TouchableOpacity onPress={fetchSavedPatterns}>
@@ -201,6 +232,24 @@ const styles = StyleSheet.create({
   actionTextContainer: { flex: 1, marginLeft: 15 },
   actionTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   actionSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+
+  galleryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: Colors.light.primary,
+    borderStyle: 'dashed', // Looks like "Upload" area
+    marginBottom: 30,
+  },
+  galleryBtnText: {
+    color: Colors.light.primary,
+    fontWeight: '700',
+    marginLeft: 10,
+    fontSize: 16,
+  },
 
   libraryHeader: {
     flexDirection: 'row',

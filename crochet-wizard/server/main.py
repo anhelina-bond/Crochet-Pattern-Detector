@@ -92,55 +92,37 @@ async def analyze(
     user_id: str = Form(...)
 ):
     try:
-        # 1. Save and handle file content
         content = await file.read()
         temp_name = f"{uuid.uuid4()}.jpg"
         file_path = UPLOAD_DIR / temp_name
         with open(file_path, "wb") as f:
             f.write(content)
 
-        # 2. RUN THE FULL AI PIPELINE
+        # 1. RUN THE FULL AI PIPELINE
+        # Result is now (graph_json, None)
         pipeline_result = engine.run_pipeline(str(file_path))
-        
-        # CHECK IF PIPELINE RETURNED DATA
+
         if pipeline_result is None:
-            # Instead of crashing, return a friendly error to the phone
-            return {
-                "success": False,
-                "message": "No stitches detected. Please try a closer, clearer photo of the swatch."
-            }
-            
-        # If it didn't return None, then we can safely unpack it
-        graph_json, svg_data = pipeline_result
+            return {"success": False, "message": "No stitches detected."}
 
-        # 3. Upload to Supabase
+        # IMPORTANT: Use index 0 to get the graph_json
+        graph_json = pipeline_result[0] 
+
+        # 2. Upload photo to Supabase (Your existing code...)
         storage_path = f"{user_id}/temp/{temp_name}"
-        # Use upsert=True to prevent errors if the file exists
-        supabase.storage.from_("swatches").upload(
-            path=storage_path, 
-            file=content,
-            file_options={"upsert": "true", "content-type": "image/jpeg"}
-        )
-        
-        # Get the URL string
+        supabase.storage.from_("swatches").upload(path=storage_path, file=content)
         image_url = supabase.storage.from_("swatches").get_public_url(storage_path)
-        
-        # DEBUG: Print this to your terminal to see if it's a real URL
-        print(f"DEBUG: Generated Image URL: {image_url}")
-        print(f"DEBUG: SVG Data Length: {len(svg_data) if svg_data else 0}")
 
+        # 3. Return the result (NOTICE: svg_data is removed or set to empty string)
         return {
             "success": True,
             "graph_json": graph_json,
-            "svg_data": svg_data,
-            "image_url": str(image_url), # Ensure it's a string
+            "svg_data": "",  # Frontend now generates this from graph_json
+            "image_url": str(image_url)
         }
-    
-    
     except Exception as e:
         print(f"PIPELINE ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
     
 
 @app.post("/modify")

@@ -6,6 +6,7 @@ import { usePattern } from '@/context/PatternContext';
 import { analyzeCrochetSwatch } from '@/services/api';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/services/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LOADING_STEPS = [
   "Uploading swatch...",
@@ -26,6 +27,9 @@ export default function ProcessingScreen() {
 
   useEffect(() => {
     const runAnalysis = async () => {
+      const savedUrl = await AsyncStorage.getItem('backend_url');
+      console.log("MOBILE SENDING TO:", `${savedUrl}/analyze`);
+      
       try {
         if (!image) throw new Error("No image found");
 

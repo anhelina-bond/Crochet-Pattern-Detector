@@ -20,6 +20,7 @@ import SVGViewer from '@/components/pattern/SVGViewer';
 import { usePattern } from '@/context/PatternContext';
 import { modifyPattern, savePatternToLibrary } from '@/services/api';
 import { supabase } from '@/services/supabase'; // Import supabase client
+import CrochetChart from '@/components/pattern/CrochetChart';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -152,12 +153,12 @@ export default function ChatScreen() {
       {/* 1. Result Preview Header */}
       <View style={styles.resultPreview}>
          <View style={styles.placeholderChart}>
-            {results?.svg_data ? (
-              <SVGViewer xml={results.svg_data} />
+            {results?.graph_json ? (
+              <CrochetChart graphData={results.graph_json} />
             ) : (
               <ActivityIndicator color={Colors.light.primary} />
             )}
-         </View>
+          </View>
 
          {renderMode === '3D' && (
            <TouchableOpacity 
