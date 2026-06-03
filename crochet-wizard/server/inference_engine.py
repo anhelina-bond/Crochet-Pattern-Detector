@@ -67,15 +67,18 @@ class CrochetInferenceEngine:
         return Image.fromarray(enhanced).convert('RGB')
 
     def calculate_stitch_angle(self, child_node, parent_node):
-        """
-        Heuristic: Calculates the rotation angle based on the vector 
-        from the parent stitch to the child stitch.
-        """
         dx = child_node['x'] - parent_node['x']
         dy = child_node['y'] - parent_node['y']
         
-        # Calculate angle in radians, then to degrees
-        # We subtract 90 because crochet symbols are 'upright' by default
+        # Calculate physical distance
+        dist = math.sqrt(dx**2 + dy**2)
+        
+        # HEURISTIC: If the stitches are very close horizontally (same row)
+        # but not stacked vertically, keep them upright (0 degrees)
+        if abs(dy) < 0.05: # Threshold for 'same row'
+            return 0.0
+        
+        # Otherwise (for Granny Squares), use the vector rotation
         angle_rad = math.atan2(dy, dx)
         angle_deg = math.degrees(angle_rad) + 90
         return round(angle_deg, 2)
