@@ -258,14 +258,17 @@ const styles = StyleSheet.create({
     paddingBottom: 30 
   },
   resultPreview: {
-    height: 260,
+    flexGrow: 1,
+    minHeight: 320,
+    maxHeight: 420,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderColor: Colors.light.border,
-    padding: 15,
+    padding: 10,
   },
   placeholderChart: {
     flex: 1,
+    width: '100%',
     backgroundColor: Colors.light.card,
     borderRadius: 12,
     justifyContent: 'center',
@@ -273,7 +276,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderWidth: 1,
     borderColor: Colors.light.primary,
-    overflow: 'hidden',
   },
   threeDBtn: {
     backgroundColor: Colors.light.primary,

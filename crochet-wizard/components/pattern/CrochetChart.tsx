@@ -42,7 +42,7 @@ export default function CrochetChart({ graphData, size = DEFAULT_CHART_SIZE }: {
 
   return (
     <View style={styles.container}>
-      <Svg width={size} height={size} viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}>
+      <Svg width="100%" height="100%" viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`} preserveAspectRatio="xMidYMid meet">
         {/* Professional Blueprint Background */}
         <Rect x={bounds.minX} y={bounds.minY} width={bounds.width} height={bounds.height} fill="#f4e9e2" />
         

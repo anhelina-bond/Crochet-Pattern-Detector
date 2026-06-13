@@ -258,7 +258,8 @@ def repair_graph(graph: FullGraph) -> FullGraph:
             }
         )
 
-    _recalculate_angles(nodes, normalized_edges)
+    # Preserve the existing node orientations from the current graph.
+    # Recomputing angles here changes the user's current stitches during AI edits.
     return validate_graph({"nodes": nodes, "edges": normalized_edges})
 
 
