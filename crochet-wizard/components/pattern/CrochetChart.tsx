@@ -1,32 +1,64 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Dimensions, StyleSheet } from 'react-native';
 import Svg, { G, Line, Rect } from 'react-native-svg';
 import { getStitchPath } from './StitchLibrary';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
-const CHART_SIZE = WINDOW_WIDTH - 40;
+const DEFAULT_CHART_SIZE = WINDOW_WIDTH - 40;
 
-export default function CrochetChart({ graphData }: { graphData: any }) {
+export default function CrochetChart({ graphData, size = DEFAULT_CHART_SIZE }: { graphData: any; size?: number }) {
   if (!graphData || !graphData.nodes) return null;
 
-  // 1. Map 0-1 range to 10-90 range to create padding
-  const PADDING = 10;
-  const RANGE = 80;
-  const toViewBox = (val: number) => (val * RANGE) + PADDING;
+  const bounds = useMemo(() => {
+    const validNodes = graphData.nodes.filter((node: any) => !isNaN(node.x) && !isNaN(node.y));
+    if (validNodes.length === 0) {
+      return { minX: 0, minY: 0, width: 100, height: 100 };
+    }
+
+    const xs = validNodes.map((node: any) => node.x);
+    const ys = validNodes.map((node: any) => node.y);
+    const nodeWidths = validNodes.map((node: any) => node.w || 0.08);
+    const nodeHeights = validNodes.map((node: any) => node.h || 0.08);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const paddingX = Math.max(0.06, Math.max(...nodeWidths) * 1.4);
+    const paddingY = Math.max(0.06, Math.max(...nodeHeights) * 1.4);
+    const paddedMinX = minX - paddingX;
+    const paddedMaxX = maxX + paddingX;
+    const paddedMinY = minY - paddingY;
+    const paddedMaxY = maxY + paddingY;
+
+    return {
+      minX: paddedMinX * 100,
+      minY: paddedMinY * 100,
+      width: Math.max((paddedMaxX - paddedMinX) * 100, 20),
+      height: Math.max((paddedMaxY - paddedMinY) * 100, 20),
+    };
+  }, [graphData]);
+
+  const toViewBox = (val: number) => val * 100;
 
   return (
     <View style={styles.container}>
-      <Svg width={CHART_SIZE} height={CHART_SIZE} viewBox="0 0 100 100">
+      <Svg width={size} height={size} viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}>
         {/* Professional Blueprint Background */}
-        <Rect width="100" height="100" fill="#f4e9e2" />
+        <Rect x={bounds.minX} y={bounds.minY} width={bounds.width} height={bounds.height} fill="#f4e9e2" />
         
-        {/* Subtle Grid Lines */}
-        {[10, 30, 50, 70, 90].map(pos => (
-          <React.Fragment key={pos}>
-            <Line x1={pos} y1="0" x2={pos} y2="100" stroke="#dcc3b4" strokeWidth="0.1" />
-            <Line x1="0" y1={pos} x2="100" y2={pos} stroke="#dcc3b4" strokeWidth="0.1" />
-          </React.Fragment>
-        ))}
+        {/* Dynamic Grid Lines based on bounds */}
+        {Array.from({ length: Math.ceil(bounds.width / 20) + 1 }).map((_, i) => {
+          const xPos = Math.floor(bounds.minX / 20) * 20 + (i * 20);
+          return (
+            <Line key={`v-${xPos}`} x1={xPos} y1={bounds.minY} x2={xPos} y2={bounds.minY + bounds.height} stroke="#dcc3b4" strokeWidth="0.1" />
+          );
+        })}
+        {Array.from({ length: Math.ceil(bounds.height / 20) + 1 }).map((_, i) => {
+          const yPos = Math.floor(bounds.minY / 20) * 20 + (i * 20);
+          return (
+            <Line key={`h-${yPos}`} x1={bounds.minX} y1={yPos} x2={bounds.minX + bounds.width} y2={yPos} stroke="#dcc3b4" strokeWidth="0.1" />
+          );
+        })}
 
         {/* 2. Render Edges */}
         {graphData.edges.map((edge: any, index: number) => {
@@ -70,8 +102,8 @@ export default function CrochetChart({ graphData }: { graphData: any }) {
 
 const styles = StyleSheet.create({
   container: {
-    width: CHART_SIZE,
-    height: CHART_SIZE,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#f4e9e2', // Your Powder Petal palette
     borderRadius: 15,
     justifyContent: 'center',

@@ -2,6 +2,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
+const DEFAULT_BACKEND_URL = 'http://10.232.133.177:8000';
+
 export interface AnalysisResponse {
   success: boolean;
   graph_json: any;
@@ -11,13 +13,28 @@ export interface AnalysisResponse {
   message: string;
 }
 
+const getBackendBaseUrl = async () => {
+  return await AsyncStorage.getItem('backend_url') || DEFAULT_BACKEND_URL;
+};
+
+const readErrorMessage = async (response: Response) => {
+  const errorText = await response.text();
+
+  try {
+    const parsed = JSON.parse(errorText);
+    return parsed.detail || parsed.message || errorText;
+  } catch {
+    return errorText;
+  }
+};
+
 export const analyzeCrochetSwatch = async (
   imageUri: string, 
   yarnData: any,
   renderMode: string,
   userId: string
   ):Promise<any> => {
-    const baseUrl = await AsyncStorage.getItem('backend_url') || 'http://10.173.251.236:8000';
+    const baseUrl = await getBackendBaseUrl();
     
     const formData = new FormData();
     
@@ -41,8 +58,8 @@ export const analyzeCrochetSwatch = async (
     });
   
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Server error: ${response.status} - ${errorText}`);
+      const errorMessage = await readErrorMessage(response);
+      throw new Error(`Server error: ${response.status} - ${errorMessage}`);
     }
   
     return await response.json();
@@ -52,24 +69,32 @@ export const modifyPattern = async (
   prompt: string,
   currentGraph: any,
   yarnData: any,
-  patternId: string,
+  patternId: string | undefined,
   userId: string 
 ):  Promise<any> => {
-  const baseUrl = await AsyncStorage.getItem('backend_url');
+  const baseUrl = await getBackendBaseUrl();
+  const payload: any = {
+    prompt: prompt,
+    current_graph: currentGraph,
+    yarn_properties: yarnData,
+    user_id: userId
+  };
+
+  if (patternId) {
+    payload.pattern_id = patternId;
+  }
 
   const response = await fetch(`${baseUrl}/modify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: prompt,
-      current_graph: currentGraph,
-      yarn_properties: yarnData,
-      pattern_id: patternId, // Sent to backend to update the correct DB row
-      user_id: userId
-    }),
+    body: JSON.stringify(payload),
   });
 
-  if (!response.ok) throw new Error("Modification failed");
+  if (!response.ok) {
+    const errorMessage = await readErrorMessage(response);
+    throw new Error(errorMessage || "Modification failed");
+  }
+
   return await response.json();
 };
 

@@ -1,23 +1,23 @@
-import json
 import os
 import sys
-import shutil
 import uuid
-from fastapi import FastAPI, UploadFile, Form, File, HTTPException, Depends
+import uvicorn
+from fastapi import FastAPI, UploadFile, Form, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, Dict
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from pathlib import Path
 # 1. FORCE the process to look inside the server directory
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parents[2]
 os.chdir(str(BASE_DIR))
 sys.path.append(str(BASE_DIR))
 
 # Now import your engine
 from inference_engine import CrochetInferenceEngine
+from llm_modifier import apply_generative_modification, normalize_graph_for_mobile, validate_graph
 
 # 2. Use simple filenames now that we are "inside" the folder
 engine = CrochetInferenceEngine(
@@ -43,7 +43,8 @@ engine = CrochetInferenceEngine(
 # )
 
 
-load_dotenv()
+load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(BASE_DIR / ".env", override=False)
 
 # --- INITIALIZATION ---
 app = FastAPI()
@@ -58,7 +59,7 @@ app.add_middleware(
 )
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 UPLOAD_DIR = Path("uploads")
@@ -66,7 +67,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 # --- SCHEMAS ---
 class ModifyRequest(BaseModel):
-    pattern_id: str  # We need this to update the specific database row
+    pattern_id: Optional[str] = None
     prompt: str
     current_graph: Dict
     yarn_properties: Dict
@@ -77,12 +78,6 @@ class ModifyRequest(BaseModel):
 @app.get("/")
 async def health_check():
     return {"status": "online", "engine": "CrochetWizard-GNN"}
-
-engine = CrochetInferenceEngine(
-    yolo_path="yolo_model.pt", 
-    gnn_path="crochet_gnn_model.pth", 
-    config_path="gnn_config.json"
-)
 
 @app.post("/analyze")
 async def analyze(
@@ -128,19 +123,28 @@ async def analyze(
 @app.post("/modify")
 async def modify(request: ModifyRequest):
     try:
-        # 1. AI Logic (Placeholder) - update the graph based on request.prompt
-        updated_graph = request.current_graph.copy()
-        
-        # 2. Re-render SVG (Placeholder)
-        new_svg = f'<svg viewBox="0 0 100 100"><rect x="30" y="30" width="40" height="40" fill="{request.yarn_properties.get("color")}" /></svg>'
+        prompt = request.prompt.strip()
+        if not prompt:
+            raise HTTPException(status_code=400, detail="Modification prompt cannot be empty.")
 
-    
+        base_graph = normalize_graph_for_mobile(validate_graph(request.current_graph))
+        updated_graph = await apply_generative_modification(base_graph, prompt)
 
         return {
             "success": True,
-            "message": "Pattern updated in your library.",
-            "graph_json": updated_graph,
-            "svg_data": new_svg
+            "message": "Pattern updated with AI.",
+            "graph_json": updated_graph.dict(),
+            "svg_data": ""
         }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

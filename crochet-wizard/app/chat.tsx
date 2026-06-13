@@ -16,7 +16,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import ChatBubble from '@/components/ui/ChatBubble';
-import SVGViewer from '@/components/pattern/SVGViewer';
 import { usePattern } from '@/context/PatternContext';
 import { modifyPattern, savePatternToLibrary } from '@/services/api';
 import { supabase } from '@/services/supabase'; // Import supabase client
@@ -51,6 +50,10 @@ export default function ChatScreen() {
 
   const sendMessage = async () => {
     if (!inputText.trim() || isUpdating || !userId) return;
+    if (!results?.graph_json) {
+      Alert.alert("Update Failed", "No graph data is available to modify.");
+      return;
+    }
 
     // Add user message to UI
     const userMsg = { id: Date.now().toString(), text: inputText, isUser: true };
@@ -65,7 +68,7 @@ export default function ChatScreen() {
       // We check results.pattern_id which was returned by the /analyze call
       const response = await modifyPattern(
         promptToSend, 
-        results?.graph_json || {}, 
+        results.graph_json, 
         yarnData,
         results?.pattern_id, // Important: unique ID from DB
         userId               // Important: unique User ID from Auth
@@ -87,8 +90,8 @@ export default function ChatScreen() {
         };
         setMessages(prev => [...prev, aiMsg]);
       }
-    } catch (error) {
-      Alert.alert("Update Failed", "Could not reach the server.");
+    } catch (error: any) {
+      Alert.alert("Update Failed", error?.message || "Could not update the pattern.");
     } finally {
       setIsUpdating(false);
     }

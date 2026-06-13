@@ -15,7 +15,7 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   
-  const [url, setUrl] = useState('http://10.173.251.236:8000');
+  const [url, setUrl] = useState('http://10.232.133.177:8000');
 
   // Load the saved URL when the page opens
   useEffect(() => {
