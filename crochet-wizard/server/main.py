@@ -11,6 +11,8 @@ from typing import Optional, List, Dict
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pathlib import Path
+from fastapi import Request
+import time
 # 1. FORCE the process to look inside the server directory
 BASE_DIR = Path(__file__).resolve().parent
 os.chdir(str(BASE_DIR))
@@ -19,10 +21,17 @@ sys.path.append(str(BASE_DIR))
 # Now import your engine
 from inference_engine import CrochetInferenceEngine
 
-# 2. Use simple filenames now that we are "inside" the folder
+# 2. V1
+# engine = CrochetInferenceEngine(
+#     yolo_path="yolo_model.pt", 
+#     gnn_path="crochet_gnn_model.pth", 
+#     config_path="gnn_config.json"
+# )
+
+# V2 
 engine = CrochetInferenceEngine(
-    yolo_path="yolo_model.pt", 
-    gnn_path="crochet_gnn_model.pth", 
+    yolo_path="yolo11s_pose.pt", 
+    gnn_path="crochet_gnn_pose_model.pth", 
     config_path="gnn_config.json"
 )
 
@@ -72,17 +81,27 @@ class ModifyRequest(BaseModel):
     yarn_properties: Dict
     user_id: str
 
+# --- MIDDLEWARE ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"DEBUG: Incoming request: {request.method} {request.url}")
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    print(f"DEBUG: Finished {request.method} in {process_time:.2f}s")
+    return response
+
 # --- API ENDPOINTS ---
 
 @app.get("/")
 async def health_check():
     return {"status": "online", "engine": "CrochetWizard-GNN"}
 
-engine = CrochetInferenceEngine(
-    yolo_path="yolo_model.pt", 
-    gnn_path="crochet_gnn_model.pth", 
-    config_path="gnn_config.json"
-)
+# engine = CrochetInferenceEngine(
+#     yolo_path="yolo_model.pt", 
+#     gnn_path="crochet_gnn_model.pth", 
+#     config_path="gnn_config.json"
+# )
 
 @app.post("/analyze")
 async def analyze(
@@ -100,13 +119,13 @@ async def analyze(
 
         # 1. RUN THE FULL AI PIPELINE
         # Result is now (graph_json, None)
+        print(f"Running inference pipeline on: {file_path}")
         pipeline_result = engine.run_pipeline(str(file_path))
-
-        if pipeline_result is None:
-            return {"success": False, "message": "No stitches detected."}
-
-        # IMPORTANT: Use index 0 to get the graph_json
-        graph_json = pipeline_result[0] 
+        if not pipeline_result:
+            return {"success": False, "message": "No stitches found"}
+        
+        # Unpack both the JSON and the SVG string
+        graph_json, svg_data = pipeline_result
 
         # 2. Upload photo to Supabase (Your existing code...)
         storage_path = f"{user_id}/temp/{temp_name}"
@@ -117,7 +136,7 @@ async def analyze(
         return {
             "success": True,
             "graph_json": graph_json,
-            "svg_data": "",  # Frontend now generates this from graph_json
+            "svg_data": svg_data,  # Frontend now generates this from graph_json
             "image_url": str(image_url)
         }
     except Exception as e:
@@ -133,8 +152,6 @@ async def modify(request: ModifyRequest):
         
         # 2. Re-render SVG (Placeholder)
         new_svg = f'<svg viewBox="0 0 100 100"><rect x="30" y="30" width="40" height="40" fill="{request.yarn_properties.get("color")}" /></svg>'
-
-    
 
         return {
             "success": True,

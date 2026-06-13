@@ -16,7 +16,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import ChatBubble from '@/components/ui/ChatBubble';
-import SVGViewer from '@/components/pattern/SVGViewer';
 import { usePattern } from '@/context/PatternContext';
 import { modifyPattern, savePatternToLibrary } from '@/services/api';
 import { supabase } from '@/services/supabase'; // Import supabase client

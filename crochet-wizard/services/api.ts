@@ -17,7 +17,7 @@ export const analyzeCrochetSwatch = async (
   renderMode: string,
   userId: string
   ):Promise<any> => {
-    const baseUrl = await AsyncStorage.getItem('backend_url') || 'http://10.173.251.236:8000';
+    const baseUrl = await AsyncStorage.getItem('backend_url') || 'http://10.236.77.236:8000';
     
     const formData = new FormData();
     
